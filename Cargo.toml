@@ -1,0 +1,11 @@
+[package]
+name = "semi-xmlrpc-tester"
+version = "0.1.0"
+authors = ["Lukas Kotek <lkotek@suse.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+xmlrpc = "0.15.0"
+dotenv_codegen = "0.15.0"
