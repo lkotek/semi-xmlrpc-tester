@@ -1,7 +1,7 @@
 {
     "activation_key":   "1-sle15sp2_retail_key",
-    "kiwi_profile":     "jeo7",
+    "kiwi_profile":     "jeos7",
     "image_store":      "SUSE Manager OS Image Store",
-    "profile_path":     "https://github.com/SUSE/manager-build-profiles#master:OSImage/POS_Image-JeOS6",
+    "profile_path":     "https://github.com/SUSE/manager-build-profiles#master:OSImage/POS_Image-JeOS7",
     "hwtype_group":     "HWTYPE:Intel-Genuine15"
 }
