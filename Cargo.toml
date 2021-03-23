@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 xmlrpc = "0.15.0"
 dotenv_codegen = "0.15.0"
+json = "0.12.4"
