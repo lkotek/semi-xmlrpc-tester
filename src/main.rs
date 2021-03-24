@@ -23,6 +23,11 @@ fn basic_tests() {
     for user in users_list.as_array().unwrap() {
         println!("{:?}", user);
     }
+    support::has_buildhost_entitlement();
+    support::add_buildhost_entitlement();
+    let id = support::schedule_highstate(support::read_env("UYUNI_BUILD_HOST"));
+    println!("{:?}", id);
+    support::status_highstate(support::read_env("UYUNI_BUILD_HOST"), id);
 }
 
 fn main() {
@@ -39,9 +44,9 @@ fn main() {
         process::exit(1);
     }
     match args[2].as_str() {
-        "full_retail"   => full_retail_deploy(),
-        "basic_tests"   => basic_tests(),
-        "image"         => scenarios::build_kiwi_image(),
+        "full_retail" => full_retail_deploy(),
+        "basic_tests" => basic_tests(),
+        "image" => scenarios::build_kiwi_image(),
         _ => {
             println!("Incorrect argument string passed.");
             process::exit(1);
