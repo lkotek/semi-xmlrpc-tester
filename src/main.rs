@@ -5,9 +5,10 @@ extern crate dotenv_codegen;
 mod scenarios;
 mod support;
 
+use serde_json::{Result, Value};
 use std::env;
 use std::process;
-use xmlrpc::{Request, Value};
+//use xmlrpc::{Request, Value};
 
 fn full_retail_deploy() {
     //scenarios::build_kiwi_image();
@@ -23,11 +24,8 @@ fn basic_tests() {
     for user in users_list.as_array().unwrap() {
         println!("{:?}", user);
     }
-    support::has_buildhost_entitlement();
-    support::add_buildhost_entitlement();
-    let id = support::schedule_highstate(support::read_env("UYUNI_BUILD_HOST"));
-    println!("{:?}", id);
-    support::status_highstate(support::read_env("UYUNI_BUILD_HOST"), id);
+    let nohy = support::create_system_group("nevim");
+    support::set_saltboot_formula(nohy);
 }
 
 fn main() {

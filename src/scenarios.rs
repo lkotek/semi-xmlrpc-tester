@@ -5,6 +5,34 @@ use std::process;
 use std::{thread, time};
 
 pub fn build_kiwi_image() {
+    /* Prepare buildhost server */
+    if !support::has_buildhost_entitlement() {
+        support::add_buildhost_entitlement();
+    }
+    let event_id = support::schedule_highstate(support::read_env("UYUNI_BUILD_HOST"));
+    // Check status of highstate
+    let step_time = 30;
+    let step = time::Duration::from_secs(step_time);
+    for i in 1..10 {
+        thread::sleep(step);
+        let status = support::status_highstate(support::read_env("UYUNI_BUILD_HOST"), event_id);
+        match status {
+            0 => println!(
+                "Highstate is still running {} after seconds.",
+                i * step_time
+            ),
+            1 => {
+                println!("Highstate was successfull after {} seconds.", i * step_time);
+                break;
+            }
+            -1 => {
+                println!("Highstate failed after {} seconds.", i * step_time);
+                process::exit(1);
+            }
+            _ => println!("Better not to imagine that."),
+        }
+    }
+
     /* Prepare Kiwi image profile and rewrite old one if necessary */
     if support::exists_kiwi_profile() {
         support::delete_kiwi_profile();

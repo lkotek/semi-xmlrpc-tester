@@ -5,6 +5,7 @@ extern crate xmlrpc;
 
 use chrono::DateTime;
 use json::JsonValue;
+use serde_json;
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
@@ -218,15 +219,82 @@ pub fn schedule_highstate(system_name: String) -> i32 {
     return req.unwrap().as_i32().unwrap();
 }
 
-pub fn status_highstate(system_name: String, id: i32) {
+pub fn status_highstate(system_name: String, id: i32) -> i32 {
     let events = Request::new("system.listSystemEvents")
         .arg(read_env("UYUNI_KEY"))
         .arg(get_system_id(system_name.clone()))
         .call_url(dotenv!("UYUNI_URL"));
     for event in events.unwrap().as_array().unwrap() {
         if event["id"].as_i32().unwrap() == id {
-            println!("{:?}", event);
-            break;
+            let failed = event["failed_count"].as_i32().unwrap();
+            let success = event["successful_count"].as_i32().unwrap();
+            if failed == 0 && success > 0 {
+                return 1; // Success
+            } else if failed == 1 {
+                return -1; // Failure
+            } else {
+                return 0; // We don't know yet
+            }
         }
     }
+    return 0;
+}
+
+pub fn create_system_group(group_name: &str) -> i32 {
+    let req = Request::new("systemgroup.create")
+        .arg(read_env("UYUNI_KEY"))
+        .arg(group_name)
+        .arg(group_name)
+        .call_url(dotenv!("UYUNI_URL"));
+    println!("System group {} created.", group_name);
+    return req.unwrap()["id"].as_i32().unwrap();
+}
+
+pub fn delete_system_group(group_name: &str) -> bool {
+    let req = Request::new("systemgroup.delete")
+        .arg(read_env("UYUNI_KEY"))
+        .arg(group_name)
+        .call_url(dotenv!("UYUNI_URL"));
+    if req.unwrap().as_i32().unwrap() == 1 {
+        println!("System group with name {} deleted.", group_name);
+        return true;
+    }
+    return false;
+}
+
+pub fn exists_system_group(group_name: &str) -> bool {
+    let system_groups = call_server("systemgroup.listAllGroups", Some(read_env("UYUNI_KEY")));
+    for system_group in system_groups.as_array().unwrap() {
+        if system_group["name"]
+            .as_str()
+            .unwrap()
+            .contains(&read_env("UYUNI_KIWI_HWTYPE_GROUP"))
+        {
+            println!(
+                "System_group with name {} exists.",
+                read_env("UYUNI_KIWI_HWTYPE_GROUP")
+            );
+            return true;
+        }
+    }
+    return false;
+}
+
+pub fn set_saltboot_formula(group_id: i32) -> i32 {
+    let formula = Request::new("formula.setFormulasOfGroup")
+        .arg(read_env("UYUNI_KEY"))
+        .arg(group_id)
+        .arg(Value::Array(vec![Value::from("saltboot")]))
+        .call_url(dotenv!("UYUNI_URL"));
+    /*let v: serde_json::Value = serde_json::from_str(
+        r#"{'size_MiB':'','mountpoint':'/','format':'','image':'POS_Image_JeOS6_SLE11','image_version':'','luks_pass':'','flags':'boot'}"#,
+    ).unwrap();*/
+    let data = Request::new("formula.setGroupFormulaData")
+        .arg(read_env("UYUNI_KEY"))
+        .arg(group_id)
+        .arg("saltboot")
+        .arg("")
+        .call_url(dotenv!("UYUNI_URL"));
+    println!("Saltboot formula cofigured.");
+    return data.unwrap().as_i32().unwrap();
 }

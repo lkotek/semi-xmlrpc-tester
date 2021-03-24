@@ -741,6 +741,7 @@ dependencies = [
  "dotenv_codegen",
  "iso8601",
  "json",
+ "serde_json",
  "xmlrpc",
 ]
 
