@@ -1,7 +1,9 @@
 {
     "activation_key":   "1-sle15sp2_retail_key",
     "kiwi_profile":     "jeos7",
+    "kiwi_initrd":      "POS_Image_JeOS7-7.0.0",
     "image_store":      "SUSE Manager OS Image Store",
     "profile_path":     "https://github.com/SUSE/manager-build-profiles#master:OSImage/POS_Image-JeOS7",
-    "hwtype_group":     "HWTYPE:Intel-Genuine15"
+    "hwtype_group":     "HWTYPE:Intel-Genuine15",
+    "build_host":       "suma-bv-41-build-sles15sp2.mgr.prv.suse.net"
 }
