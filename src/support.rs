@@ -5,7 +5,7 @@ extern crate xmlrpc;
 
 use chrono::DateTime;
 use json::JsonValue;
-use serde_json;
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
@@ -56,6 +56,17 @@ pub fn import_json_data(json_file: &str) -> HashMap<String, String> {
         );
     }
     return parsed_data;
+}
+
+pub fn json_to_btree(json_file: &str) -> BTreeMap<String, Value> {
+    let json_data = read_text_file(json_file);
+    let parsed = &json::parse(&json_data).unwrap()["partitioning"]["disk1"]; // go thru child items next
+    let mut map: BTreeMap<String, Value> = BTreeMap::new();
+    for (json_key, json_value) in parsed.entries() {
+        map.insert(json_key.to_string(), Value::from(json_value.to_string()));
+    }
+    println!("{:?}", map);
+    return map;
 }
 
 pub fn input() -> String {
@@ -289,11 +300,12 @@ pub fn set_saltboot_formula(group_id: i32) -> i32 {
     /*let v: serde_json::Value = serde_json::from_str(
         r#"{'size_MiB':'','mountpoint':'/','format':'','image':'POS_Image_JeOS6_SLE11','image_version':'','luks_pass':'','flags':'boot'}"#,
     ).unwrap();*/
+    let mut map = BTreeMap::new();
     let data = Request::new("formula.setGroupFormulaData")
         .arg(read_env("UYUNI_KEY"))
         .arg(group_id)
         .arg("saltboot")
-        .arg("")
+        .arg(Value::Struct(map))
         .call_url(dotenv!("UYUNI_URL"));
     println!("Saltboot formula cofigured.");
     return data.unwrap().as_i32().unwrap();

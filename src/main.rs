@@ -5,10 +5,8 @@ extern crate dotenv_codegen;
 mod scenarios;
 mod support;
 
-use serde_json::{Result, Value};
 use std::env;
 use std::process;
-//use xmlrpc::{Request, Value};
 
 fn full_retail_deploy() {
     //scenarios::build_kiwi_image();
@@ -24,8 +22,10 @@ fn basic_tests() {
     for user in users_list.as_array().unwrap() {
         println!("{:?}", user);
     }
-    let nohy = support::create_system_group("nevim");
-    support::set_saltboot_formula(nohy);
+    //let nohy = support::create_system_group("skupina");
+    //println!("{:?}", nohy);
+    //support::set_saltboot_formula(27);
+    support::json_to_btree("saltboot.json");
 }
 
 fn main() {
