@@ -1,0 +1,86 @@
+{
+  "bind": {
+    "config": {
+      "options": {
+        "empty-zones-enable": "no"
+      },
+      "include_forwarders": true
+    },
+    "configured_zones": {
+      "41.168.192.in-addr.arpa": {
+        "type": "master",
+        "notify": false
+      },
+      "branch.org": {
+        "type": "master",
+        "notify": false
+      }
+    },
+    "available_zones": {
+      "41.168.192.in-addr.arpa": {
+        "file": "41.168.192.in-addr.arpa.txt",
+        "soa": {
+          "ns": "rbs.branch.org",
+          "contact": "",
+          "serial": "auto",
+          "class": "IN",
+          "refresh": 8600,
+          "retry": 900,
+          "expiry": 86000,
+          "nxdomain": 500,
+          "ttl": 8600
+        },
+        "records": {
+          "A": {},
+          "NS": {
+            "@": [
+              "rbs.branch.org."
+            ]
+          },
+          "CNAME": {}
+        },
+        "generate_reverse": {
+          "net": "192.168.41.254/24",
+          "for_zones": [
+            "branch.org"
+          ]
+        }
+      },
+      "branch.org": {
+        "file": "branch.org.txt",
+        "soa": {
+          "ns": "rbs.branch.org",
+          "contact": "",
+          "serial": "auto",
+          "class": "IN",
+          "refresh": 8600,
+          "retry": 900,
+          "expiry": 86000,
+          "nxdomain": 500,
+          "ttl": 8600
+        },
+        "records": {
+          "A": {
+            "rbs": "192.168.41.254"
+          },
+          "NS": {
+            "@": [
+              "rbs"
+            ]
+          },
+          "CNAME": {
+            "ftp": "rbs.branch.org.",
+            "salt": "rbs.branch.org.",
+            "tftp": "rbs.branch.org.",
+            "dns": "rbs.branch.org.",
+            "dhcp": "rbs.branch.org."
+          }
+        },
+        "generate_reverse": {
+          "net": "",
+          "for_zones": []
+        }
+      }
+    }
+  }
+}

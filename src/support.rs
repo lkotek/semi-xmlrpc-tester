@@ -13,8 +13,10 @@ use std::io;
 use std::io::prelude::*;
 use std::io::BufRead;
 use std::path::Path;
+use std::process;
 use std::time::SystemTime;
 use xmlrpc::{Request, Value};
+use std::{thread, time};
 
 pub fn call_server(xmlrpc_method: &str, key: Option<String>) -> Value {
     let request = match key {
@@ -46,6 +48,7 @@ pub fn read_text_file(text_file: &str) -> String {
 
 pub fn import_json_data(json_file: &str) -> HashMap<String, String> {
     let json_data = read_text_file(json_file);
+    println!("{:?}", json_data);
     let parsed = json::parse(&json_data).unwrap();
     let mut parsed_data = HashMap::new();
     for (json_key, json_value) in parsed.entries() {
@@ -58,31 +61,47 @@ pub fn import_json_data(json_file: &str) -> HashMap<String, String> {
     return parsed_data;
 }
 
-
+pub fn json_array_to_xmlrpc(json_array: JsonValue) -> Vec<Value> {
+    println!("BEFORE {:?}", json_array);
+    let mut map: Vec<Value> = Vec::new();
+    for json_value in json_array.members() {
+        map.push(
+            if json_value.is_string() {
+                Value::String(json_value.to_string())
+            } else if json_value.is_number() {
+                Value::Int(json_value.as_i32().unwrap())
+            } else {
+                Value::Bool(false)
+            }
+        );  
+    }
+    println!("AFTER {:?}", map);
+    return map;
+    //json_array.members().map(|item| json_to_btree(item));
+}
 
 pub fn json_to_btree(parsed: &JsonValue) -> BTreeMap<String, Value> {
-    //let parsed = &json::parse(&json_data).unwrap()[root]; // go thru child items next
-                                                                    // !!! https://docs.rs/json/0.12.4/json/enum.JsonValue.html
     let mut map: BTreeMap<String, Value> = BTreeMap::new();
     for (json_key, json_value) in parsed.entries() {
-        /*println!("{:?}", json_key);
-        println!("{:?}, {:?}", json_value.len(), json_value);
-        if json_value.is_string() {println!("SHORT")}
-        if json_value.is_number() {println!("NUMBER")}*/
         map.insert(
             json_key.to_string(),
             if json_value.is_string() {
                 Value::String(json_value.to_string())
             } else if json_value.is_number() {
                 Value::Int(json_value.as_i32().unwrap())
+            } else if json_value.is_boolean() {
+                Value::Bool(json_value.as_bool().unwrap())
             } else if json_value.is_array() {
-                Value::Array(vec![Value::from(json_value.to_string())])                
+                //json_array_to_xmlrpc(json_value.clone());
+                //json_value.members().map()
+                //Value::Array(vec![Value::from(json_value.to_string())])
+                Value::Array(json_array_to_xmlrpc(json_value.clone()))
+                //Value::Array(vec![json_value.map(|v| Value::from(v.to_string()))])
             } else {
                 Value::Struct(json_to_btree(json_value))
-            }          
-        );                    
+            },
+        );
     }
-    //println!("{:?}", map);
     return map;
 }
 
@@ -268,6 +287,29 @@ pub fn status_highstate(system_name: String, id: i32) -> i32 {
     return 0;
 }
 
+pub fn wait_for_highstate(system_name: &str, event_id: i32, limit: u64, step_time: u64) {
+    let step = time::Duration::from_secs(step_time);
+    for i in 1..limit {
+        thread::sleep(step);
+        let status = status_highstate(system_name.to_string(), event_id);
+        match status {
+            0 => println!(
+                "Highstate is still running after {} seconds.",
+                i * step_time
+            ),
+            1 => {
+                println!("Highstate was successfull after {} seconds.", i * step_time);
+                break;
+            }
+            -1 => {
+                println!("Highstate failed after {} seconds.", i * step_time);
+                process::exit(1);
+            }
+            _ => println!("Better not to imagine that."),
+        }
+    }    
+}
+
 pub fn create_system_group(group_name: &str) -> i32 {
     let req = Request::new("systemgroup.create")
         .arg(read_env("UYUNI_KEY"))
@@ -296,7 +338,7 @@ pub fn exists_system_group(group_name: &str) -> bool {
         if system_group["name"]
             .as_str()
             .unwrap()
-            .contains(&read_env("UYUNI_HWTYPE_GROUP"))
+            .contains(&group_name)
         {
             println!(
                 "System_group with name {} exists.",
@@ -316,17 +358,44 @@ pub fn set_saltboot_formula(group_id: i32) -> i32 {
         .call_url(dotenv!("UYUNI_URL"));
 
     let json_data = read_text_file("saltboot.json");
-    let parsed = &json::parse(&json_data).unwrap()["partitioning"];
-    println!("{:?}", json_to_btree(parsed));     
-    let mut map = BTreeMap::new();
-    map.insert("partitioning".to_string(), Value::Struct(json_to_btree(parsed)));
-           
+    let parsed = &json::parse(&json_data).unwrap();
+    println!("{:?}", json_to_btree(parsed));
+
     let data = Request::new("formula.setGroupFormulaData")
         .arg(read_env("UYUNI_KEY"))
         .arg(group_id)
         .arg("saltboot")
-        .arg(Value::Struct(map))
+        .arg(Value::Struct(json_to_btree(parsed)))
         .call_url(dotenv!("UYUNI_URL"));
     println!("Saltboot formula cofigured.");
+    return data.unwrap().as_i32().unwrap();
+}
+
+pub fn set_system_formulas(system_id: i32, formulas: Vec<&str>) -> i32 {
+    let mut formula_names: Vec<Value> = Vec::new();
+    for formula in formulas {
+        formula_names.push(Value::from(formula));
+    }
+    let req = Request::new("formula.setFormulasOfServer")
+        .arg(read_env("UYUNI_KEY"))
+        .arg(system_id)
+        .arg(Value::Array(formula_names))
+        .call_url(dotenv!("UYUNI_URL"));
+    println!("All formulas set, but not cofigured yet.");
+    return req.unwrap().as_i32().unwrap();
+}
+
+pub fn set_system_formula_data(system_id: i32, formula_name: &str) -> i32 {
+    let json_data = read_text_file(format!("{}.json", formula_name).as_str());
+    let parsed = &json::parse(&json_data).unwrap();
+    println!("{:?}", json_to_btree(parsed));
+
+    let data = Request::new("formula.setSystemFormulaData")
+        .arg(read_env("UYUNI_KEY"))
+        .arg(system_id)
+        .arg(formula_name)
+        .arg(Value::Struct(json_to_btree(parsed)))
+        .call_url(dotenv!("UYUNI_URL"));
+    println!("{:?} formula cofigured.", formula_name);
     return data.unwrap().as_i32().unwrap();
 }

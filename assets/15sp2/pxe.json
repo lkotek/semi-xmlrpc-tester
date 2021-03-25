@@ -1,0 +1,8 @@
+{
+  "pxe": {
+    "initrd_name": "initrd",
+    "kernel_name": "linux",
+    "default_kernel_parameters": "panic=60 ramdisk_size=710000 ramdisk_blocksize=4096 vga=0x317 splash=silent",
+    "pxe_root_directory": "/srv/saltboot"
+  }
+}

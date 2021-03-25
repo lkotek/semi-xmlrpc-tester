@@ -1,0 +1,19 @@
+{
+  "vsftpd_config": {
+    "rsa_private_key_file": "/etc/ssl/private/[ssl-cert-file].key",
+    "local_enable": true,
+    "use_localtime": true,
+    "xferlog_enable": true,
+    "rsa_cert_file": "/etc/ssl/certs/[ssl-cert-file].pem",
+    "ssl_enable": false,
+    "pam_service_name": "vsftpd",
+    "listen": true,
+    "dirmessage_enable": true,
+    "connect_from_port_20": true,
+    "anonymous_enable": true,
+    "allow_anon_ssl": true,
+    "listen_address": "192.168.41.254",
+    "secure_chroot_dir": "/usr/share/empty",
+    "anon_root": "/srv/saltboot"
+  }
+}

@@ -5,5 +5,6 @@
     "image_store":      "SUSE Manager OS Image Store",
     "profile_path":     "https://github.com/SUSE/manager-build-profiles#master:OSImage/POS_Image-JeOS7",
     "hwtype_group":     "HWTYPE:Intel-Genuine15",
-    "build_host":       "suma-bv-41-build-sles15sp2.mgr.prv.suse.net"
+    "build_host":       "suma-bv-41-build-sles15sp2.mgr.prv.suse.net",
+    "branch_server":    "suma-bv-41-pxy.mgr.prv.suse.net"
 }

@@ -1,0 +1,7 @@
+{
+  "tftpd": {
+    "tftpd_user": "saltboot",
+    "root_dir": "/srv/saltboot",
+    "listen_ip": "192.168.41.254"
+  }
+}

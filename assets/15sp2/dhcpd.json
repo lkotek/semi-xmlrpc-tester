@@ -1,0 +1,31 @@
+{
+  "dhcpd": {
+    "domain_name_servers": [
+      "192.168.41.254"
+    ],
+    "max_lease_time": 20001,
+    "domain_name": "branch.org",
+    "hosts": {},
+    "default_lease_time": 20000,
+    "listen_interfaces": [
+      "eth1"
+    ],
+    "subnets": {
+      "192.168.41.0": {
+        "filename": "/boot/pxelinux.0",
+        "next_server": "192.168.41.254",
+        "netmask": "255.255.255.0",
+        "hosts": {},
+        "range": [
+          "192.168.41.128",
+          "192.168.41.253"
+        ],
+        "filename_efi": "boot/grub.efi",
+        "routers": [
+          "192.168.41.254"
+        ],
+        "broadcast_address": "192.168.41.255"
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "branch_network": {
+    "srv_directory_group": "saltboot",
+    "dedicated_NIC": true,
+    "firewall": {
+      "enable_route": true,
+      "open_xmpp_server_port": true,
+      "enable_NAT": true,
+      "open_xmpp_client_port": true,
+      "open_ssh_port": true
+    },
+    "netmask": "255.255.255.0",
+    "srv_directory": "/srv/saltboot",
+    "ip": "192.168.41.254",
+    "forwarder": "bind",
+    "nic": "eth1",
+    "forwarder_fallback": true,
+    "configure_firewall": true,
+    "srv_directory_user": "saltboot"
+  },
+  "pxe": {
+    "minion_id_naming": "Hostname",
+    "branch_id": "id"
+  }
+}

@@ -29,7 +29,7 @@
           "size_MiB": "",
           "mountpoint": "/",
           "format": "",
-          "image": "POS_Image_JeOS6_SLE11",
+          "image": "POS_Image_JeOS7",
           "image_version": "",
           "luks_pass": "",
           "flags": "boot"
