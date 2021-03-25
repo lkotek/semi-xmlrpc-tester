@@ -14,6 +14,7 @@ fn full_retail_deploy() {
 }
 
 fn basic_tests() {
+    /*
     println!(
         "SYSTEM_ID: {:?}",
         support::get_system_id(support::read_env("UYUNI_BUILD_HOST"))
@@ -22,10 +23,17 @@ fn basic_tests() {
     for user in users_list.as_array().unwrap() {
         println!("{:?}", user);
     }
-    //let nohy = support::create_system_group("skupina");
-    //println!("{:?}", nohy);
-    //support::set_saltboot_formula(27);
-    support::json_to_btree("saltboot.json");
+    if support::exists_system_group("skupina") {
+        support::delete_system_group("skupina");
+    }
+    let nohy = support::create_system_group("skupina");
+    println!("{:?}", nohy);*/
+    support::set_saltboot_formula(30);
+    /*
+    let json_data = support::read_text_file("saltboot.json");
+    let parsed = &json::parse(&json_data).unwrap()["partitioning"];
+    println!("{:?}", support::json_to_btree(parsed));
+    */
 }
 
 fn main() {

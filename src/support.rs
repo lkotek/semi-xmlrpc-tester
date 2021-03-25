@@ -58,14 +58,31 @@ pub fn import_json_data(json_file: &str) -> HashMap<String, String> {
     return parsed_data;
 }
 
-pub fn json_to_btree(json_file: &str) -> BTreeMap<String, Value> {
-    let json_data = read_text_file(json_file);
-    let parsed = &json::parse(&json_data).unwrap()["partitioning"]["disk1"]; // go thru child items next
+
+
+pub fn json_to_btree(parsed: &JsonValue) -> BTreeMap<String, Value> {
+    //let parsed = &json::parse(&json_data).unwrap()[root]; // go thru child items next
+                                                                    // !!! https://docs.rs/json/0.12.4/json/enum.JsonValue.html
     let mut map: BTreeMap<String, Value> = BTreeMap::new();
     for (json_key, json_value) in parsed.entries() {
-        map.insert(json_key.to_string(), Value::from(json_value.to_string()));
+        /*println!("{:?}", json_key);
+        println!("{:?}, {:?}", json_value.len(), json_value);
+        if json_value.is_string() {println!("SHORT")}
+        if json_value.is_number() {println!("NUMBER")}*/
+        map.insert(
+            json_key.to_string(),
+            if json_value.is_string() {
+                Value::String(json_value.to_string())
+            } else if json_value.is_number() {
+                Value::Int(json_value.as_i32().unwrap())
+            } else if json_value.is_array() {
+                Value::Array(vec![Value::from(json_value.to_string())])                
+            } else {
+                Value::Struct(json_to_btree(json_value))
+            }          
+        );                    
     }
-    println!("{:?}", map);
+    //println!("{:?}", map);
     return map;
 }
 
@@ -279,11 +296,11 @@ pub fn exists_system_group(group_name: &str) -> bool {
         if system_group["name"]
             .as_str()
             .unwrap()
-            .contains(&read_env("UYUNI_KIWI_HWTYPE_GROUP"))
+            .contains(&read_env("UYUNI_HWTYPE_GROUP"))
         {
             println!(
                 "System_group with name {} exists.",
-                read_env("UYUNI_KIWI_HWTYPE_GROUP")
+                read_env("UYUNI_HWTYPE_GROUP")
             );
             return true;
         }
@@ -297,10 +314,13 @@ pub fn set_saltboot_formula(group_id: i32) -> i32 {
         .arg(group_id)
         .arg(Value::Array(vec![Value::from("saltboot")]))
         .call_url(dotenv!("UYUNI_URL"));
-    /*let v: serde_json::Value = serde_json::from_str(
-        r#"{'size_MiB':'','mountpoint':'/','format':'','image':'POS_Image_JeOS6_SLE11','image_version':'','luks_pass':'','flags':'boot'}"#,
-    ).unwrap();*/
+
+    let json_data = read_text_file("saltboot.json");
+    let parsed = &json::parse(&json_data).unwrap()["partitioning"];
+    println!("{:?}", json_to_btree(parsed));     
     let mut map = BTreeMap::new();
+    map.insert("partitioning".to_string(), Value::Struct(json_to_btree(parsed)));
+           
     let data = Request::new("formula.setGroupFormulaData")
         .arg(read_env("UYUNI_KEY"))
         .arg(group_id)
