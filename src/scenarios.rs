@@ -1,21 +1,20 @@
 use crate::support;
 
-use std::env;
 use std::process;
 use std::{thread, time};
 
 pub fn prepare_buildhost() {
-    println!("INFO: Preparation of buildhost.");
+    support::info("Preparation of buildhost.".to_string());
     /* Prepare buildhost server */
     if !support::has_buildhost_entitlement() {
         support::add_buildhost_entitlement();
     }
     let event_id = support::schedule_highstate(support::read_env("UYUNI_BUILD_HOST"));
-    support::wait_for_highstate(&support::read_env("UYUNI_BUILD_HOST"), event_id, 40, 30);
+    support::wait_for_highstate(&support::read_env("UYUNI_BUILD_HOST"), event_id, 80, 15);
 }
 
 pub fn prepare_kiwi_profile() {
-    println!("INFO: Preparation of kiwi profile.");
+    support::info("STAGE Preparation of kiwi profile.".to_string());
     /* Prepare Kiwi image profile and rewrite old one if necessary */
     if support::exists_kiwi_profile() {
         support::delete_kiwi_profile();
@@ -24,7 +23,7 @@ pub fn prepare_kiwi_profile() {
 }
 
 pub fn build_kiwi_image() {
-    println!("INFO: Building of kiwi image.");
+    support::info("STAGE Building of kiwi image.".to_string());
     /* Building kiwi images */
     let image = support::exists_kiwi_image();
     if image.contains_key(&true) {
@@ -33,17 +32,23 @@ pub fn build_kiwi_image() {
         let status = support::status_kiwi_image(image_id);
         match status.as_str() {
             "queued" | "picked up" | "completed" => {
-                println!("Kiwi image status: {}. Do you wish to delete existing image (or building) and build again? [y, n]", status.as_str());
-                if support::input().contains("y") {
+                support::info(format!("Kiwi image status: *{}*.", status.as_str()));
+                support::info("Do you wish to delete (or cancel process of) existing image and build again? [y, n]".to_string());
+                if support::read_env("UYUNI_YES") == "yes" || support::input().contains("y") {
                     support::delete_kiwi_image(image_id);
                     support::schedule_kiwi_image();
+                } else {
+                    process::exit(0);
                 }
             }
             "failed" => {
                 support::delete_kiwi_image(image_id);
                 support::schedule_kiwi_image();
             }
-            _ => println!("Better not to imagine that."),
+            _ => {
+                support::error(format!("Better not to imagine what happened to poor kiwi image."));
+                process::exit(1);                            
+            }
         }
     } else {
         support::schedule_kiwi_image();
@@ -59,45 +64,47 @@ pub fn build_kiwi_image() {
             thread::sleep(step);
             let status = support::status_kiwi_image(image_id);
             match status.as_str() {
-                "queued" | "picked up" => println!(
+                "queued" | "picked up" => support::info(format!(
                     "Kiwi image building is *{}* {} after seconds.",
                     status.as_str(),
                     i * step_time
-                ),
+                )),
                 "completed" => {
-                    println!(
+                    support::info(format!(
                         "Kiwi image building is *{}* {} after seconds.",
                         status.as_str(),
                         i * step_time
-                    );
+                    ));
                     break;
                 }
                 "failed" => {
-                    println!(
+                    support::error(format!(
                         "Kiwi image building failed after {} seconds.",
                         i * step_time
-                    );
+                    ));
                     process::exit(1);
                 }
-                _ => println!("Better not to imagine that."),
+                _ => {
+                    support::error(format!("Better not to imagine that."));
+                    process::exit(1);
+                }
             }
         }
     }
 }
 
 pub fn configure_saltboot() {
-    println!("INFO: Configuration of salboot formula.");
+    support::info("STAGE Configuration of salboot formula.".to_string());
     let hwgroup_name = support::read_env("UYUNI_HWTYPE_GROUP");
     if support::exists_system_group(&hwgroup_name) {
         support::delete_system_group(&hwgroup_name);
     }
     let hwgroup_id = support::create_system_group(&hwgroup_name);
-    println!("{}", hwgroup_id);
     support::set_saltboot_formula(hwgroup_id);
 }
 
 pub fn configure_retail_formulas() {
-    println!("INFO: Configuration of retail formulas.");
+    support::info("STAGE Configuration of retail formulas.".to_string());
     let rbs_id = support::get_system_id(support::read_env("UYUNI_BRANCH_SERVER"));
     let formulas = vec![
         "branch-network",
@@ -115,14 +122,14 @@ pub fn configure_retail_formulas() {
 }
 
 pub fn prepare_for_deployment() {
-    println!("INFO: Preparing of groups and  higstate to branch server.");
+    support::info("INFO: Preparing of groups and  higstate to branch server.".to_string());
     let system_groups = vec!["SERVERS", "TERMINALS", "id"];
     for group in system_groups {
         if support::exists_system_group(&group) {
             support::delete_system_group(&group);
         }
         let group_id = support::create_system_group(&group);
-        println!("Group {:?} with id {:?} created.", &group, group_id);
+        support::info(format!("Group {:?} with id {:?} created.", &group, group_id));
     }
     let event_id = support::schedule_highstate(support::read_env("UYUNI_BRANCH_SERVER"));
     support::wait_for_highstate(&support::read_env("UYUNI_BRANCH_SERVER"), event_id, 20, 30);

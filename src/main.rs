@@ -18,29 +18,44 @@ fn full_retail_deploy() {
 }
 
 fn basic_tests() {
-    println!(
-        "SYSTEM_ID: {:?}",
-        support::get_system_id(support::read_env("UYUNI_BUILD_HOST"))
-    );
     let users_list = support::call_server("user.list_users", Some(support::read_env("UYUNI_KEY")));
     for user in users_list.as_array().unwrap() {
-        println!("{:?}", user);
+        support::debug(format!("{:?}", user));
     }
+    support::info(format!(
+        "Logged in with key {:?}",
+        support::read_env("UYUNI_KEY")
+    ));
 }
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     env::set_var("UYUNI_PROFILE", &args[1]);
-    support::import_json_data("config.json");
 
     let key = support::call_server("auth.login", None);
-    println!("Logged in with key {:?}", key.as_str().unwrap());
     env::set_var("UYUNI_KEY", key.as_str().unwrap());
 
-    if args.len() != 3 {
-        println!("Incorrect number of arguments passed.");
+    if args.len() < 3 {
+        println!("Incorrect number of arguments passed. Closing.");
         process::exit(1);
     }
+    if args.contains(&"-y".to_string()) {
+        env::set_var("UYUNI_YES", "yes"); // Answer all script question as yes
+    } else {
+        env::set_var("UYUNI_YES", "no");
+    }
+    if args.contains(&"--debug".to_string()) {
+        env::set_var("UYUNI_LOG_LEVEL", "DEBUG");
+    } else if args.contains(&"--silent".to_string()) {
+        env::set_var("UYUNI_LOG_LEVEL", "NO");
+    } else {
+        env::set_var("UYUNI_LOG_LEVEL", "INFO");
+    }
+    support::info(format!(
+        "Log level set to {}.",
+        support::read_env("UYUNI_LOG_LEVEL")
+    ));
+    support::import_json_data("config.json");
     match args[2].as_str() {
         "basic_tests" => basic_tests(),
         "formulas" => scenarios::configure_retail_formulas(),
@@ -51,7 +66,7 @@ fn main() {
         "saltboot" => scenarios::configure_saltboot(),
         "prepare" => scenarios::prepare_for_deployment(),
         _ => {
-            println!("Incorrect argument string passed.");
+            support::error("Incorrect argument string passed.".to_string());
             process::exit(1);
         }
     }

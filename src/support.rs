@@ -3,18 +3,14 @@ extern crate iso8601;
 extern crate json;
 extern crate xmlrpc;
 
-use chrono::DateTime;
 use json::JsonValue;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
-use std::io;
 use std::io::prelude::*;
-use std::io::BufRead;
 use std::path::Path;
 use std::process;
-use std::time::SystemTime;
 use xmlrpc::{Request, Value};
 use std::{thread, time};
 
@@ -33,22 +29,41 @@ pub fn read_env(env_variable: &str) -> String {
     env::var(env_variable).unwrap().to_string()
 }
 
+pub fn log(info: String, level: &str) {
+    let now = chrono::Local::now();
+    let info_levels = vec!["INFO", "ERROR", "WARNING"];    
+    if !read_env("UYUNI_LOG_LEVEL").contains("NO") && (read_env("UYUNI_LOG_LEVEL").contains(level) || info_levels.contains(&level)) {
+        println!("{} {}: {}", now.format("%F %T"), &level, &info);
+    }
+}
+
+pub fn info(info: String) { log (info, "INFO"); }
+
+pub fn warning(info: String) { log (info, "WARNING"); }
+
+pub fn error(info: String) { log (info, "ERROR"); }
+
+pub fn debug(info: String) { log (info, "DEBUG"); }
+
 pub fn read_text_file(text_file: &str) -> String {
     let format_pathfile = format!("assets/{}/{}", read_env("UYUNI_PROFILE"), text_file);
     let pathfile = Path::new(&format_pathfile);
-    println!("{:?}", pathfile.display());
+    debug(format!("File {:?} opened.", pathfile.display()));
     let mut file = match File::open(pathfile) {
-        Err(why) => panic!("Cannot open file!"),
+        Err(reason) => panic!("Cannot open file, because {:?}", reason),
         Ok(file) => file,
     };
     let mut text_data = String::new();
-    file.read_to_string(&mut text_data);
-    return text_data;
+    match file.read_to_string(&mut text_data) {
+        Err(reason) => {
+            panic!("Cannot read file, because {:?}", reason);            
+            },  
+        Ok(_) => return text_data,
+    };    
 }
 
 pub fn import_json_data(json_file: &str) -> HashMap<String, String> {
     let json_data = read_text_file(json_file);
-    println!("{:?}", json_data);
     let parsed = json::parse(&json_data).unwrap();
     let mut parsed_data = HashMap::new();
     for (json_key, json_value) in parsed.entries() {
@@ -62,7 +77,6 @@ pub fn import_json_data(json_file: &str) -> HashMap<String, String> {
 }
 
 pub fn json_array_to_xmlrpc(json_array: JsonValue) -> Vec<Value> {
-    println!("BEFORE {:?}", json_array);
     let mut map: Vec<Value> = Vec::new();
     for json_value in json_array.members() {
         map.push(
@@ -75,9 +89,8 @@ pub fn json_array_to_xmlrpc(json_array: JsonValue) -> Vec<Value> {
             }
         );  
     }
-    println!("AFTER {:?}", map);
     return map;
-    //json_array.members().map(|item| json_to_btree(item));
+    // Approach to be considered: json_array.members().map(|item| json_to_btree(item));
 }
 
 pub fn json_to_btree(parsed: &JsonValue) -> BTreeMap<String, Value> {
@@ -92,11 +105,7 @@ pub fn json_to_btree(parsed: &JsonValue) -> BTreeMap<String, Value> {
             } else if json_value.is_boolean() {
                 Value::Bool(json_value.as_bool().unwrap())
             } else if json_value.is_array() {
-                //json_array_to_xmlrpc(json_value.clone());
-                //json_value.members().map()
-                //Value::Array(vec![Value::from(json_value.to_string())])
                 Value::Array(json_array_to_xmlrpc(json_value.clone()))
-                //Value::Array(vec![json_value.map(|v| Value::from(v.to_string()))])
             } else {
                 Value::Struct(json_to_btree(json_value))
             },
@@ -130,10 +139,7 @@ pub fn exists_kiwi_profile() -> bool {
             .unwrap()
             .contains(&read_env("UYUNI_KIWI_PROFILE"))
         {
-            println!(
-                "Kiwi profile with name {} already exists.",
-                read_env("UYUNI_KIWI_PROFILE")
-            );
+            info(format!("Profile with name {} exists.", read_env("UYUNI_KIWI_PROFILE")));
             return true;
         }
     }
@@ -150,10 +156,10 @@ pub fn create_kiwi_profile() -> bool {
         .arg(read_env("UYUNI_ACTIVATION_KEY"))
         .call_url(dotenv!("UYUNI_URL"));
     if req.unwrap().as_i32().unwrap() == 1 {
-        println!(
+        info(format!(
             "Kiwi profile with name {} created.",
             read_env("UYUNI_KIWI_PROFILE")
-        );
+        ));
         return true;
     }
     return false;
@@ -165,10 +171,10 @@ pub fn delete_kiwi_profile() -> bool {
         .arg(read_env("UYUNI_KIWI_PROFILE"))
         .call_url(dotenv!("UYUNI_URL"));
     if req.unwrap().as_i32().unwrap() == 1 {
-        println!(
+        info(format!(
             "Kiwi profile with name {} deleted.",
             read_env("UYUNI_KIWI_PROFILE")
-        );
+        ));
         return true;
     }
     return false;
@@ -183,7 +189,7 @@ pub fn exists_kiwi_image() -> HashMap<bool, i32> {
             .unwrap()
             .contains(&read_env("UYUNI_KIWI_PROFILE"))
         {
-            println!("Image with name {} exists.", read_env("UYUNI_KIWI_PROFILE"));
+            warning(format!("Image with name {} exists with unknown status.", read_env("UYUNI_KIWI_PROFILE")));
             image_status.insert(true, image["id"].as_i32().unwrap());
             return image_status;
         }
@@ -209,10 +215,10 @@ pub fn schedule_kiwi_image() -> i32 {
         .arg(get_system_id(read_env("UYUNI_BUILD_HOST")))
         .arg(Value::from(now))
         .call_url(dotenv!("UYUNI_URL"));
-    println!(
+    info(format!(
         "Building of image with name {} started.",
         read_env("UYUNI_KIWI_PROFILE")
-    );
+    ));
     return req.unwrap().as_i32().unwrap();
 }
 
@@ -222,7 +228,7 @@ pub fn delete_kiwi_image(image_id: i32) -> bool {
         .arg(image_id)
         .call_url(dotenv!("UYUNI_URL"));
     if req.unwrap().as_i32().unwrap() == 1 {
-        println!("Kiwi image with id {} deleted.", image_id);
+        info(format!("Kiwi image with id {} deleted.", image_id));
         return true;
     }
     return false;
@@ -235,6 +241,7 @@ pub fn has_buildhost_entitlement() -> bool {
         .call_url(dotenv!("UYUNI_URL"));
     for entitlement in entitlements.unwrap().as_array().unwrap() {
         if entitlement.as_str().unwrap().contains("osimage_build_host") {
+            warning(format!("Buildhost entitlement was set already for {}.", read_env("UYUNI_BUILD_HOST")));
             return true;
         }
     }
@@ -247,10 +254,10 @@ pub fn add_buildhost_entitlement() -> i32 {
         .arg(get_system_id(read_env("UYUNI_BUILD_HOST")))
         .arg(Value::Array(vec![Value::from("osimage_build_host")]))
         .call_url(dotenv!("UYUNI_URL"));
-    println!(
+    info(format!(
         "Buildhost entitlement set for {}.",
         read_env("UYUNI_BUILD_HOST")
-    );
+    ));
     return req.unwrap().as_i32().unwrap();
 }
 
@@ -262,7 +269,7 @@ pub fn schedule_highstate(system_name: String) -> i32 {
         .arg(Value::from(now))
         .arg(false)
         .call_url(dotenv!("UYUNI_URL"));
-    println!("Highstate for system {} scheduled.", system_name);
+    info(format!("Highstate for system {} scheduled (patience please).", system_name));
     return req.unwrap().as_i32().unwrap();
 }
 
@@ -305,7 +312,7 @@ pub fn wait_for_highstate(system_name: &str, event_id: i32, limit: u64, step_tim
                 println!("Highstate failed after {} seconds.", i * step_time);
                 process::exit(1);
             }
-            _ => println!("Better not to imagine that."),
+            _ => println!("Better not to imagine what happened with highstate."),
         }
     }    
 }
@@ -316,7 +323,7 @@ pub fn create_system_group(group_name: &str) -> i32 {
         .arg(group_name)
         .arg(group_name)
         .call_url(dotenv!("UYUNI_URL"));
-    println!("System group {} created.", group_name);
+    info(format!("System group {} created.", group_name));
     return req.unwrap()["id"].as_i32().unwrap();
 }
 
@@ -326,7 +333,7 @@ pub fn delete_system_group(group_name: &str) -> bool {
         .arg(group_name)
         .call_url(dotenv!("UYUNI_URL"));
     if req.unwrap().as_i32().unwrap() == 1 {
-        println!("System group with name {} deleted.", group_name);
+        info(format!("System group with name {} deleted.", group_name));
         return true;
     }
     return false;
@@ -340,10 +347,10 @@ pub fn exists_system_group(group_name: &str) -> bool {
             .unwrap()
             .contains(&group_name)
         {
-            println!(
+            warning(format!(
                 "System_group with name {} exists.",
                 read_env("UYUNI_HWTYPE_GROUP")
-            );
+            ));
             return true;
         }
     }
@@ -356,19 +363,22 @@ pub fn set_saltboot_formula(group_id: i32) -> i32 {
         .arg(group_id)
         .arg(Value::Array(vec![Value::from("saltboot")]))
         .call_url(dotenv!("UYUNI_URL"));
-
-    let json_data = read_text_file("saltboot.json");
-    let parsed = &json::parse(&json_data).unwrap();
-    println!("{:?}", json_to_btree(parsed));
-
-    let data = Request::new("formula.setGroupFormulaData")
-        .arg(read_env("UYUNI_KEY"))
-        .arg(group_id)
-        .arg("saltboot")
-        .arg(Value::Struct(json_to_btree(parsed)))
-        .call_url(dotenv!("UYUNI_URL"));
-    println!("Saltboot formula cofigured.");
-    return data.unwrap().as_i32().unwrap();
+    if formula.unwrap().as_i32().unwrap() == 1 {
+        /* Parse data from json file and map it to XMLRPC data types */
+        let json_data = read_text_file("saltboot.json");
+        let parsed = &json::parse(&json_data).unwrap();
+        // println!("{:?}", json_to_btree(parsed));
+        let data = Request::new("formula.setGroupFormulaData")
+            .arg(read_env("UYUNI_KEY"))
+            .arg(group_id)
+            .arg("saltboot")
+            .arg(Value::Struct(json_to_btree(parsed)))
+            .call_url(dotenv!("UYUNI_URL"));
+        info("Saltboot formula cofigured.".to_string());        
+        return data.unwrap().as_i32().unwrap();
+    } else {
+        return -1;
+    }    
 }
 
 pub fn set_system_formulas(system_id: i32, formulas: Vec<&str>) -> i32 {
@@ -381,14 +391,14 @@ pub fn set_system_formulas(system_id: i32, formulas: Vec<&str>) -> i32 {
         .arg(system_id)
         .arg(Value::Array(formula_names))
         .call_url(dotenv!("UYUNI_URL"));
-    println!("All formulas set, but not cofigured yet.");
+    info("All formulas enabled for system, but not configured yet.".to_string());
     return req.unwrap().as_i32().unwrap();
 }
 
 pub fn set_system_formula_data(system_id: i32, formula_name: &str) -> i32 {
     let json_data = read_text_file(format!("{}.json", formula_name).as_str());
     let parsed = &json::parse(&json_data).unwrap();
-    println!("{:?}", json_to_btree(parsed));
+    // println!("{:?}", json_to_btree(parsed));
 
     let data = Request::new("formula.setSystemFormulaData")
         .arg(read_env("UYUNI_KEY"))
@@ -396,6 +406,6 @@ pub fn set_system_formula_data(system_id: i32, formula_name: &str) -> i32 {
         .arg(formula_name)
         .arg(Value::Struct(json_to_btree(parsed)))
         .call_url(dotenv!("UYUNI_URL"));
-    println!("{:?} formula cofigured.", formula_name);
+    info(format!("*{:?}* formula cofigured.", formula_name));
     return data.unwrap().as_i32().unwrap();
 }
