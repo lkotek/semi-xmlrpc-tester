@@ -1,4 +1,7 @@
 {
+    "url":              "http://suma-bv-41-srv.mgr.prv.suse.net/rpc/api",
+    "user":             "admin",
+    "pass":             "admin",
     "activation_key":   "1-sle15sp2_retail_key",
     "kiwi_profile":     "jeos7",
     "kiwi_initrd":      "POS_Image_JeOS7-7.0.0",

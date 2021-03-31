@@ -1,6 +1,4 @@
 extern crate xmlrpc;
-#[macro_use]
-extern crate dotenv_codegen;
 
 mod scenarios;
 mod support;
@@ -32,9 +30,6 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     env::set_var("UYUNI_PROFILE", &args[1]);
 
-    let key = support::call_server("auth.login", None);
-    env::set_var("UYUNI_KEY", key.as_str().unwrap());
-
     if args.len() < 3 {
         println!("Incorrect number of arguments passed. Closing.");
         process::exit(1);
@@ -56,6 +51,10 @@ fn main() {
         support::read_env("UYUNI_LOG_LEVEL")
     ));
     support::import_json_data("config.json");
+    
+    let key = support::call_server("auth.login", None);
+    env::set_var("UYUNI_KEY", key.as_str().unwrap());
+        
     match args[2].as_str() {
         "basic_tests" => basic_tests(),
         "formulas" => scenarios::configure_retail_formulas(),
