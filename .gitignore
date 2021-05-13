@@ -1,2 +1,4 @@
 /target
 .env
+/assets/*
+!/assets/15sp2/*
