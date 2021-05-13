@@ -31,6 +31,8 @@ fn help() {
         "Usage:
     semi-xmlrpc-tester [-y] [--silent | --debug] [environment] [scenario]
 
+    ! Working directory must contain assets directory with environments !
+
     Example:
     semi-xmlrpc-tester -y --debug 15sp2 basic_test
 
