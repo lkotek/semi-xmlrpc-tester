@@ -56,6 +56,7 @@ fn help() {
     saltboot    - configure saltboot formula
     prepare     - create necessary groups and apply highstate at branch server
     full        - run full deployment (all above) in proper order (as above)
+    image_sync  - configure image sync formula only
     "
     );
 }
@@ -103,6 +104,7 @@ fn main() {
         "image" => scenarios::build_kiwi_image(),
         "saltboot" => scenarios::configure_saltboot(),
         "prepare" => scenarios::prepare_for_deployment(),
+        "image_sync" => scenarios::configure_image_sync_formula(),
         _ => {
             support::error("Incorrect argument string passed.".to_string());
             process::exit(1);
