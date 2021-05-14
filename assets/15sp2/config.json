@@ -3,6 +3,7 @@
     "user":             "admin",
     "pass":             "admin",
     "activation_key":   "1-sle15sp2_retail_key",
+    "clonned_key":      "1-sle15sp2_minion_key",
     "kiwi_profile":     "jeos7",
     "kiwi_initrd":      "POS_Image_JeOS7-7.0.0",
     "image_store":      "SUSE Manager OS Image Store",

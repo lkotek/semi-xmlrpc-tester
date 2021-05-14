@@ -431,3 +431,13 @@ pub fn set_system_formula_data(system_id: i32, formula_name: &str) -> i32 {
     info(format!("*{:?}* formula cofigured.", formula_name));
     return data.unwrap().as_i32().unwrap();
 }
+
+pub fn clone_activation_key(key_name: &str) -> String {
+    let req = Request::new("activationkey.clone")
+        .arg(read_env("UYUNI_KEY"))
+        .arg(read_env("UYUNI_CLONNED_KEY"))
+        .arg(key_name)
+        .call_url(read_env("UYUNI_URL"));
+    info(format!("Activation key with name *{:?}* clonned.", key_name));
+    return req.unwrap().as_str().unwrap().to_string();
+}

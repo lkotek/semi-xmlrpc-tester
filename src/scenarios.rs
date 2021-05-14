@@ -155,3 +155,10 @@ pub fn prepare_for_deployment() {
     let event_id = support::schedule_highstate(support::read_env("UYUNI_BRANCH_SERVER"));
     support::wait_for_highstate(&support::read_env("UYUNI_BRANCH_SERVER"), event_id, 20, 30);
 }
+
+pub fn clone_terminal_activation_key() {
+    support::info(format!(
+        "Activation key {:?} created.",
+        support::clone_activation_key(&support::read_env("UYUNI_ACTIVATION_KEY"))
+    ));    
+}

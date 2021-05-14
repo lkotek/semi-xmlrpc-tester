@@ -57,6 +57,7 @@ fn help() {
     prepare     - create necessary groups and apply highstate at branch server
     full        - run full deployment (all above) in proper order (as above)
     image_sync  - configure image sync formula only
+    clone_key   - clone existing activation key (described in config.json)
     "
     );
 }
@@ -105,6 +106,7 @@ fn main() {
         "saltboot" => scenarios::configure_saltboot(),
         "prepare" => scenarios::prepare_for_deployment(),
         "image_sync" => scenarios::configure_image_sync_formula(),
+        "clone_key" => scenarios::clone_terminal_activation_key(),
         _ => {
             support::error("Incorrect argument string passed.".to_string());
             process::exit(1);
