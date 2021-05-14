@@ -29,12 +29,12 @@ fn basic_tests() {
 fn help() {
     println!(
         "Usage:
-    semi-xmlrpc-tester [-y] [--silent | --debug] [environment] [scenario]
+    semi-xmlrpc-tester [environment] [scenario] [-y] [--silent | --debug]
 
     ! Working directory must contain assets directory with environments !
 
     Example:
-    semi-xmlrpc-tester -y --debug 15sp2 basic_test
+    semi-xmlrpc-tester 15sp2 basic_test -y --debug
 
     Options:
     ========
