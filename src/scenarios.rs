@@ -123,6 +123,22 @@ pub fn configure_retail_formulas() {
     }
 }
 
+pub fn configure_image_sync_formula() {
+    support::info("STAGE Configuration of image sync formula only.".to_string());
+    let rbs_id = support::get_system_id(support::read_env("UYUNI_BRANCH_SERVER"));
+    let formulas = vec![
+        "branch-network",
+        "dhcpd",
+        "pxe",
+        "tftpd",
+        "vsftpd",
+        "image-synchronize",
+        "bind",
+    ];
+    support::set_system_formulas(rbs_id, formulas.clone());
+    support::set_system_formula_data(rbs_id, "image-synchronize");
+}
+
 pub fn prepare_for_deployment() {
     support::info("INFO: Preparing of groups and  higstate to branch server.".to_string());
     let system_groups = vec!["SERVERS", "TERMINALS", "id"];
